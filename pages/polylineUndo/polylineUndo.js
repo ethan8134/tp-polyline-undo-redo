@@ -1,6 +1,62 @@
-import Stack from './stack';
+import Stack from "./stack";
 import Konva from "konva";
 import { createMachine, interpret } from "xstate";
+
+class UndoManager {
+    constructor() {
+        this.undoStack = new Stack();
+    }
+
+    executeCommand(command) {
+        command.execute();
+        this.undoStack.push(command);
+        this.redoStack = new Stack();
+    }
+
+    undo() {
+        if (!this.undoStack.isEmpty()) {
+            const command = this.undoStack.pop();
+            if (command.undo) {
+                command.undo();
+                this.redoStack.push(command);
+            }
+        }
+    }
+    redo() {
+        if (!this.redoStack.isEmpty()) {
+            const command = this.redoStack.pop();
+            command.execute();
+            this.undoStack.push(command);
+        }
+    }
+}
+
+export default UndoManager;
+
+class Command {
+    execute() {
+        throw new Error("Execute method must be implemented");
+    }
+}
+
+class ConcreteCommand extends Command {
+    constructor(line, layer) {
+        super();
+        this.line = line;
+        this.layer = layer;
+    }
+
+    execute() {
+        this.layer.add(this.line); // Ajoute la polyline à la couche
+        this.layer.batchDraw(); // Redessine la couche
+    }
+    undo() {
+        this.line.remove(); // Supprime la polyline de la couche
+        this.layer.batchDraw(); // Redessine la couche
+    }
+}
+
+export { Command, ConcreteCommand };
 
 const stage = new Konva.Stage({
     container: "container",
@@ -16,7 +72,9 @@ stage.add(dessin);
 stage.add(temporaire);
 
 const MAX_POINTS = 10;
-let polyline // La polyline en cours de construction;
+let polyline; // La polyline en cours de construction;
+
+const undoManager = new UndoManager();
 
 const polylineMachine = createMachine(
     {
@@ -41,7 +99,8 @@ const polylineMachine = createMachine(
                     MOUSEMOVE: {
                         actions: "setLastPoint",
                     },
-                    Escape: { // event.key
+                    Escape: {
+                        // event.key
                         target: "idle",
                         actions: "abandon",
                     },
@@ -69,12 +128,14 @@ const polylineMachine = createMachine(
                         actions: "abandon",
                     },
 
-                    Enter: { // event.key
+                    Enter: {
+                        // event.key
                         target: "idle",
                         actions: "saveLine",
                     },
 
-                    Backspace: [ // event.key
+                    Backspace: [
+                        // event.key
                         {
                             target: "manyPoints",
                             actions: "removeLastPoint",
@@ -119,7 +180,10 @@ const polylineMachine = createMachine(
                 polyline.points(newPoints);
                 polyline.stroke("black"); // On change la couleur
                 // On sauvegarde la polyline dans la couche de dessin
-                dessin.add(polyline); // On l'ajoute à la couche de dessin
+                //dessin.add(polyline); // On l'ajoute à la couche de dessin
+                // Utilisation du pattern Command
+                const cmd = new ConcreteCommand(polyline, dessin);
+                undoManager.executeCommand(cmd);
             },
             addPoint: (context, event) => {
                 const pos = stage.getPointerPosition();
@@ -175,5 +239,11 @@ window.addEventListener("keydown", (event) => {
 // bouton Undo
 const undoButton = document.getElementById("undo");
 undoButton.addEventListener("click", () => {
-    
+    undoManager.undo();
+});
+
+// bouton redo
+const redoButton = document.getElementById("redo");
+redoButton.addEventListener("click", () => {
+    undoManager.redo();
 });
