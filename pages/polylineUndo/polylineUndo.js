@@ -76,6 +76,25 @@ class ConcreteCommand extends Command {
     }
 }
 
+class ChangeColorCommand extends Command {
+    constructor(line, newColor) {
+        super();
+        this.line = line;
+        this.newColor = newColor;
+        this.previousColor = line.stroke(); // Sauvegarde de la couleur actuelle
+    }
+
+    execute() {
+        this.line.stroke(this.newColor); // Change la couleur
+        this.line.getLayer().batchDraw(); // Redessine la couche
+    }
+
+    undo() {
+        this.line.stroke(this.previousColor); // Restaure la couleur précédente
+        this.line.getLayer().batchDraw(); // Redessine la couche
+    }
+}
+
 export { Command, ConcreteCommand };
 
 const stage = new Konva.Stage({
@@ -266,4 +285,20 @@ undoButton.addEventListener("click", () => {
 const redoButton = document.getElementById("redo");
 redoButton.addEventListener("click", () => {
     undoManager.redo();
+});
+
+const changeColorRedButton = document.getElementById("changeColorRed");
+changeColorRedButton.addEventListener("click", () => {
+    if (polyline) {
+        const cmd = new ChangeColorCommand(polyline, "red");
+        undoManager.executeCommand(cmd);
+    }
+});
+
+const changeColorBlueButton = document.getElementById("changeColorBlue");
+changeColorBlueButton.addEventListener("click", () => {
+    if (polyline) {
+        const cmd = new ChangeColorCommand(polyline, "blue");
+        undoManager.executeCommand(cmd);
+    }
 });
