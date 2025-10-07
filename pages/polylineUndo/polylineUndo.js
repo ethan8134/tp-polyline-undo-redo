@@ -302,3 +302,19 @@ changeColorBlueButton.addEventListener("click", () => {
         undoManager.executeCommand(cmd);
     }
 });
+
+const changeColorGreenButton = document.getElementById("changeColorGreen");
+changeColorGreenButton.addEventListener("click", () => {
+    if (polyline) {
+        const cmd = new ChangeColorCommand(polyline, "green");
+        undoManager.executeCommand(cmd);
+    }
+});
+
+const changeColorYellowButton = document.getElementById("changeColorYellow");
+changeColorYellowButton.addEventListener("click", () => {
+    if (polyline) {
+        const cmd = new ChangeColorCommand(polyline, "yellow");
+        undoManager.executeCommand(cmd);
+    }
+});
