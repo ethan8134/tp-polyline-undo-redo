@@ -18,6 +18,10 @@ class Stack {
     isEmpty() {
         return this.stack.length === 0;
     }
+
+    clear() {
+        this.items = []; // Vide complètement la pile
+    }
 }
 
 export default Stack;
